@@ -33,7 +33,7 @@ bolted on.
 
 ## Why nanoroute
 
-- **~2KB gzipped, zero runtime dependencies.** No transitive packages, no supply-chain
+- **~2.3KB gzipped, zero runtime dependencies.** No transitive packages, no supply-chain
   surface beyond React itself.
 - **No provider needed.** Location lives in a `useSyncExternalStore` store, not in
   context — mount `<Routes>` anywhere and it just works against the browser URL.
@@ -60,7 +60,7 @@ right component for the current URL, nanoroute does that and stops there.
 | Config surface | `path`, `element`, nested `children` | Loaders, actions, error boundaries, handles, and more |
 | TypeScript | Fully typed, no `any` | Fully typed |
 
-<sub>Sizes measured August 2026: nanoroute's `dist/index.js` gzips to 2,360 bytes
+<sub>Sizes measured August 2026: nanoroute's `dist/index.js` gzips to 2,398 bytes
 (built from this repo); react-router@8.3.0's main bundle gzips to 59,247 bytes per
 [Bundlephobia](https://bundlephobia.com/package/react-router). Re-check before citing —
 both numbers move as each package ships new releases.</sub>
@@ -127,7 +127,8 @@ import {
 	// hooks
 	useLocation, useMatch, useNavigate, useParams, useRouterHistory, useSearchParams,
 	// history & SSR
-	browserHistory, createBrowserHistory, createMemoryHistory, navigate, setServerUrl,
+	browserHistory, createBrowserHistory, createMemoryHistory, createStaticHistory,
+	navigate, setServerUrl,
 	// standalone matcher
 	matchPath,
 } from 'nanoroute'
@@ -243,14 +244,15 @@ Bring your own instance to drive and inspect it directly, e.g. from `node:test` 
 Vitest:
 
 ```tsx
+import assert from 'node:assert/strict'
 import { createMemoryHistory, Router } from 'nanoroute'
 
 const history = createMemoryHistory({ initialEntries: ['/'] })
 render(<Router history={history}><App /></Router>)
 
 history.navigate('/users/7')
-expect(history.entries).toEqual(['/', '/users/7'])
-expect(history.index).toBe(1)
+assert.deepEqual(history.entries, ['/', '/users/7'])
+assert.equal(history.index, 1)
 ```
 
 `createMemoryHistory` resolves relative targets (`'sub'`, `'?q=1'`, `'#top'`, `'../x'`)
@@ -258,16 +260,42 @@ against the current entry, truncates forward entries on push (like a real sessio
 caps the stack at `maxEntries` (default `50`) so a long-lived router can't grow it
 forever.
 
+Inside a component, `useRouterHistory()` returns whichever history is active for that
+subtree — the browser by default, or whatever `<Router>` / `<MemoryRouter>` supplied —
+which is what `useNavigate` and `useLocation` are built on:
+
+```tsx
+import { useRouterHistory } from 'nanoroute'
+import type { MemoryHistory } from 'nanoroute'
+
+const history = useRouterHistory()
+history.navigate('/next')                    // always available, whatever the history
+const { entries } = history as MemoryHistory // only valid when you know it's a MemoryRouter
+```
+
 ### Server-side rendering
 
 ```tsx
 import { setServerUrl } from 'nanoroute'
 
-setServerUrl(request.url) // once per request, before renderToString / renderToPipeableStream
+setServerUrl(request.url) // once per request, before renderToString / renderToStaticMarkup
 ```
 
 On the client, the same snapshot is read from `window.location`, so hydration matches
 without any extra setup on your part.
+
+`setServerUrl` writes one shared value for the whole process, so it's only safe when
+requests can't interleave — true for synchronous rendering, not for streaming SSR
+(`renderToPipeableStream` / `renderToReadableStream`), where a Suspense boundary can
+yield mid-render and let a second request's `setServerUrl` call stomp on the first.
+For that case, isolate the URL per request instead:
+
+```tsx
+import { createStaticHistory, Router } from 'nanoroute'
+
+const history = createStaticHistory(request.url) // scoped to this request, not shared
+render(<Router history={history}><App /></Router>)
+```
 
 ## API reference
 
@@ -287,7 +315,11 @@ without any extra setup on your part.
 | `useRouterHistory()` | The history driving this subtree. |
 | `navigate(to, opts)` | Module-level, for use outside React. Targets the browser history. |
 | `matchPath(pattern, pathname)` | Standalone matcher. |
-| `createMemoryHistory` / `createBrowserHistory` / `setServerUrl` | History factories. |
+| `browserHistory` | The singleton driving the browser by default — used when no `<Router>` wraps the tree. |
+| `createBrowserHistory()` | Creates an independent browser-backed history; rarely needed, `browserHistory` already exists. |
+| `createMemoryHistory(options)` | `initialEntries`, `initialIndex`, `maxEntries`. Returns a history with `entries` / `index` for inspection. |
+| `createStaticHistory(url)` | A history frozen to one URL, isolated per call — safe for concurrent SSR requests, unlike `setServerUrl`'s shared global. |
+| `setServerUrl(url)` | Sets the URL `browserHistory` reports during synchronous SSR (`renderToString` / `renderToStaticMarkup`). |
 
 All prop and return types (`LinkProps`, `RouterHistory`, `MemoryHistory`,
 `RouteParams`, `SearchParamsUpdate`, …) are exported from `nanoroute` directly — no
@@ -329,7 +361,8 @@ No. `<Routes>` reads the browser URL by default with zero setup. Wrap in `<Route
 
 No — that's explicitly out of scope; see
 [Deliberately not included](#deliberately-not-included). nanoroute does support
-server-side rendering itself via `setServerUrl`, and works fine as the client-side
+server-side rendering itself via `setServerUrl` (synchronous rendering) or
+`createStaticHistory` (concurrent/streaming SSR), and works fine as the client-side
 router inside a custom SSR setup.
 
 #### How do I test components that use nanoroute?

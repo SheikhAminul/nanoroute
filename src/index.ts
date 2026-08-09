@@ -10,6 +10,7 @@ export {
 	setServerUrl,
 } from './history/browser.js'
 export { createMemoryHistory } from './history/memory.js'
+export { createStaticHistory } from './history/static.js'
 export { useLocation } from './hooks/use-location.js'
 export { useMatch } from './hooks/use-match.js'
 export { useNavigate } from './hooks/use-navigate.js'

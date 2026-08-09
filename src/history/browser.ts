@@ -6,7 +6,14 @@ const HISTORY_EVENTS = ['popstate', 'hashchange'] as const
 
 let serverUrl = '/'
 
-/** Set the requested URL before rendering on the server. */
+/**
+ * Set the requested URL before rendering on the server.
+ *
+ * This is a single shared value for the whole process — safe for synchronous
+ * rendering (`renderToString`, `renderToStaticMarkup`), but not for concurrent
+ * requests interleaved by streaming SSR. For that, use `createStaticHistory(url)`
+ * with `<Router history>` instead, which isolates the URL per request.
+ */
 const setServerUrl = (url: string): void => {
 	serverUrl = url
 }
