@@ -1,6 +1,6 @@
 {
 	"name": "nanoroute",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Zero-dependency React router in ~2KB gzipped — nested routes, typed params, wildcards, and a memory history, no context provider required.",
 	"keywords": [
 		"react",
