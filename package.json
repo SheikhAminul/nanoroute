@@ -1,0 +1,65 @@
+{
+	"name": "nanoroute",
+	"version": "0.1.0",
+	"description": "Zero-dependency React router in ~2KB gzipped — nested routes, typed params, wildcards, and a memory history, no context provider required.",
+	"keywords": [
+		"react",
+		"router",
+		"routing",
+		"react-router",
+		"memory-router",
+		"tiny",
+		"lightweight",
+		"zero-dependency",
+		"typescript"
+	],
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/SheikhAminul/nanoroute.git"
+	},
+	"bugs": {
+		"url": "https://github.com/SheikhAminul/nanoroute/issues"
+	},
+	"homepage": "https://github.com/SheikhAminul/nanoroute#readme",
+	"author": "Sheikh Aminul <aminulfse@gmail.com>",
+	"type": "module",
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"build": "tsup",
+		"typecheck": "tsc -p tsconfig.json",
+		"lint": "eslint src",
+		"test": "rm -rf .test-build && tsc -p tsconfig.test.json && node --test \".test-build/test/*.test.js\"",
+		"prepublishOnly": "npm run lint && npm run test && npm run build"
+	},
+	"peerDependencies": {
+		"react": ">=19"
+	},
+	"devDependencies": {
+		"@types/node": "^22.0.0",
+		"@types/react": "^19.0.0",
+		"@types/react-dom": "^19.0.0",
+		"eslint": "^9.0.0",
+		"eslint-plugin-react-hooks": "^7.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"tsup": "^8.5.1",
+		"typescript": "^5.6.0",
+		"typescript-eslint": "^8.0.0"
+	}
+}
